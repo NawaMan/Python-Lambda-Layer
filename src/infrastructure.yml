@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template provision lambda function to create Python Aws Lambda Layer.
+Parameters:
+  LambdaName:
+    Type:        String
+    Description: Name of the Lambda.
+    Default:     create-layer-lambda-function
+  LambdaBucket:
+    Type:        String
+    Description: Name of the S3 bucket where the Lambda deployment package is stored.
+    Default:     nawaman-lambdas
+  LambdaKey:
+    Type:        String
+    Description: The S3 key where the Lambda deployment package is stored.
+    Default:     create-layer/create-layer-lambda-function.zip
+  LayersBucket:
+    Type:        String
+    Description: Name of the S3 bucket where the result layers will be stored.
+    Default:     nawaman-lambda-layers
+  Verbosity:
+    Type:        String
+    Description: Verbosity.
+    Default:     "quiet"
+    AllowedValues:
+      - "quiet"
+      - "verbose"
+
+Resources:
+  CreateLayerLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaName
+      Handler:      lambda.handler
+      Role:         !GetAtt CreateLayerLambdaExecutionRole.Arn
+      Runtime:      python3.9
+      Timeout:      300
+      MemorySize:   512
+      TracingConfig:
+        Mode: Active
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key:    !Ref LambdaKey
+      Environment:
+        Variables:
+          LAYERS_BUCKET: !Ref LayersBucket
+          VERBOSITY:     !Ref Verbosity
+  CreateLayerLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CreateLayerLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess
+      Policies:
+        - PolicyName: S3AccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${LayersBucket}"
+                  - !Sub "arn:aws:s3:::${LayersBucket}/*"
+
+Outputs:
+  CreateLayerLambdaFunctionName:
+    Description: Name of the Lambda function
+    Value:       !Ref LambdaName
+    Export:
+      Name: !Sub "${AWS::StackName}-CreateLayerLambdaFunctionName"
+  CreateLayerLambdaFunctionArn:
+    Description: ARN of the Lambda function
+    Value:       !GetAtt CreateLayerLambdaFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-CreateLayerLambdaFunctionArn"
