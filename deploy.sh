@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source configuration.sh
+source configurations.sh
 
 VERBOSITY=quiet
 # VERBOSITY=verbose

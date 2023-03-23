@@ -2,7 +2,7 @@
 
 # Set up the layer buckets.
 
-source configuration.sh
+source configurations.sh
 
 
 aws s3api create-bucket             \
